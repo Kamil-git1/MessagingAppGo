@@ -1,0 +1,8 @@
+# Ignoruj katalog z zależnościami
+node_modules/
+
+# Ignoruj pliki środowiskowe
+.env
+
+# Ignoruj logi
+npm-debug.log*
