@@ -1,41 +1,33 @@
 package utils
 
 import (
-	"errors"
-	"time"
-
-	"github.com/dgrijalva/jwt-go"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
-var jwtSecret = []byte("your_secret_key")
-
-type Claims struct {
-	Username string `json:"username"`
-	jwt.StandardClaims
+type User struct {
+	ID       uint   `gorm:"primaryKey"`
+	Email    string `gorm:"unique;not null"`
+	Username string `gorm:"unique;not null"`
+	Password string `gorm:"not null"`
 }
 
-func GenerateToken(username string) (string, error) {
-	expirationTime := time.Now().Add(24 * time.Hour)
-	claims := &Claims{
-		Username: username,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
-		},
+// Rejestracja z haszowaniem
+func (user *User) Register(db *gorm.DB) error {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
 	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtSecret)
+	user.Password = string(hashedPassword)
+	return db.Create(user).Error
 }
 
-func ValidateToken(tokenString string) (string, error) {
-	claims := &Claims{}
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return jwtSecret, nil
-	})
-
-	if err != nil || !token.Valid {
-		return "", errors.New("invalid token")
+// Autoryzacja przez email lub username
+func Authenticate(db *gorm.DB, identifier string, password string) (*User, bool) {
+	var user User
+	if err := db.Where("email = ? OR username = ?", identifier, identifier).First(&user).Error; err != nil {
+		return nil, false
 	}
-
-	return claims.Username, nil
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	return &user, err == nil
 }

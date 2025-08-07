@@ -23,6 +23,7 @@ export const loginUser = async (credentials) => {
 export const sendMessage = async (messageData) => {
     try {
         const response = await axios.post(`${API_URL}/messages`, messageData);
+        
         return response.data;
     } catch (error) {
         throw error.response.data;
