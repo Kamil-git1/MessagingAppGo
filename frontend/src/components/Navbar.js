@@ -1,32 +1,56 @@
 import React, { useState } from 'react';
 
-const Navbar = () => {
+// Komponent Navbar przyjmuje funkcję onLogin jako props — służy do przekazania zalogowanego użytkownika do App.js
+const Navbar = ({ onLogin }) => {
+  // Stan rozwijanego menu
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // Stan aktywnego formularza ('register' lub 'login')
   const [activeForm, setActiveForm] = useState(null);
+
+  // Lokalny stan zalogowanego użytkownika (do wyświetlenia w pasku)
+  const [loggedInUser, setLoggedInUser] = useState(null);
+
+  // Dane z formularza rejestracji/logowania
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
+    repeatPassword: '',
   });
 
+  // Przełączanie widoczności rozwijanego menu
   const toggleDropdown = () => {
     setDropdownOpen(prev => !prev);
   };
 
+  // Pokazuje wybrany formularz i resetuje dane wejściowe
   const showForm = (formType) => {
     setActiveForm(formType);
     setDropdownOpen(false);
-    setFormData({ username: '', email: '', password: '' });
+    setFormData({
+      username: '',
+      email: '',
+      password: '',
+      repeatPassword: '',
+    });
   };
 
+  // Obsługa zmian w polach formularza
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // Obsługa rejestracji użytkownika
   const handleRegister = async () => {
+    if (formData.password !== formData.repeatPassword) {
+      alert('Hasła nie są zgodne!');
+      return;
+    }
+
     try {
-      const response = await fetch('/api/users/register', {
+      const response = await fetch('http://localhost:8080/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -39,6 +63,7 @@ const Navbar = () => {
       const result = await response.json();
       if (response.ok) {
         alert('Rejestracja zakończona sukcesem!');
+        setActiveForm(null);
       } else {
         alert(`Błąd rejestracji: ${result.error || 'Nieznany błąd'}`);
       }
@@ -48,9 +73,10 @@ const Navbar = () => {
     }
   };
 
+  // Obsługa logowania użytkownika
   const handleLogin = async () => {
     try {
-      const response = await fetch('/api/users/login', {
+      const response = await fetch('http://localhost:8080/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -61,7 +87,10 @@ const Navbar = () => {
 
       const result = await response.json();
       if (response.ok) {
-        alert(`Zalogowano jako: ${formData.username}`);
+        alert(`Zalogowano jako: ${result.username}`);
+        setLoggedInUser(result);   // zapis lokalny
+        onLogin(result);           // przekazanie użytkownika do App.js
+        setActiveForm(null);
       } else {
         alert(`Błąd logowania: ${result.error || 'Nieznany błąd'}`);
       }
@@ -71,6 +100,14 @@ const Navbar = () => {
     }
   };
 
+  // Obsługa wylogowania
+  const handleLogout = () => {
+    setLoggedInUser(null); // czyścimy lokalny stan
+    onLogin(null);         // czyścimy w App.js
+    alert('Wylogowano');
+  };
+
+  // Stylizacja komponentu
   const styles = {
     navbar: {
       display: 'flex',
@@ -84,6 +121,11 @@ const Navbar = () => {
       padding: '5px',
       borderRadius: '4px',
       border: 'none',
+    },
+    userInfo: {
+      marginLeft: '1rem',
+      fontStyle: 'italic',
+      color: '#ecf0f1',
     },
     menuButton: {
       backgroundColor: '#3498db',
@@ -135,21 +177,32 @@ const Navbar = () => {
     },
   };
 
+  // Render komponentu
   return (
     <div>
       <div style={styles.navbar}>
-        <input type="text" placeholder="Szukaj..." style={styles.searchInput} />
+        <div>
+          {/* <input type="text" placeholder="Szukaj..." style={styles.searchInput} /> */}
+          {loggedInUser && (
+            <span style={styles.userInfo}>Zalogowano jako: {loggedInUser.username}</span>
+          )}
+        </div>
         <div style={styles.dropdown}>
           <button style={styles.menuButton} onClick={toggleDropdown}>Opcje</button>
           {dropdownOpen && (
             <div style={styles.dropdownContent}>
               <button style={styles.dropdownButton} onClick={() => showForm('register')}>Rejestracja</button>
-              <button style={styles.dropdownButton} onClick={() => showForm('login')}>Logowanie</button>
+              {!loggedInUser ? (
+                <button style={styles.dropdownButton} onClick={() => showForm('login')}>Logowanie</button>
+              ) : (
+                <button style={styles.dropdownButton} onClick={handleLogout}>Wyloguj</button>
+              )}
             </div>
           )}
         </div>
       </div>
 
+      {/* Formularz rejestracji */}
       {activeForm === 'register' && (
         <div style={styles.formContainer}>
           <h3>Formularz rejestracji</h3>
@@ -177,10 +230,19 @@ const Navbar = () => {
             onChange={handleChange}
             style={styles.formInput}
           />
+          <input
+            type="password"
+            name="repeatPassword"
+            placeholder="Powtórz hasło"
+            value={formData.repeatPassword}
+            onChange={handleChange}
+            style={styles.formInput}
+          />
           <button style={styles.formButton} onClick={handleRegister}>Zarejestruj się</button>
         </div>
       )}
 
+      {/* Formularz logowania */}
       {activeForm === 'login' && (
         <div style={styles.formContainer}>
           <h3>Formularz logowania</h3>

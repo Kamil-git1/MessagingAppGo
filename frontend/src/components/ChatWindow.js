@@ -1,120 +1,205 @@
-import React, { useEffect, useState } from 'react';
-import '../styles/main.css';
+import React, { useEffect, useState, useRef } from 'react';
 
 const ChatWindow = ({ currentUser }) => {
-  const [chatPartnerId, setChatPartnerId] = useState('public'); // domyślnie czat publiczny
-  const [chatPartner, setChatPartner] = useState(null);
-  const [users, setUsers] = useState([]);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [receiverId, setReceiverId] = useState('');
+  const [users, setUsers] = useState([]);
+  const messagesEndRef = useRef(null);
 
-  // Pobierz listę użytkowników
-  useEffect(() => {
-    const fetchUsers = async () => {
-      const response = await fetch('/api/users');
-      const data = await response.json();
-      const filtered = data.filter(user => user.id !== currentUser.id);
-      setUsers(filtered);
-    };
-    fetchUsers();
-  }, [currentUser]);
-
-  // Pobierz wiadomości (publiczne lub prywatne)
+  // Pobierz wiadomości publiczne
   useEffect(() => {
     const fetchMessages = async () => {
-      let url = '';
-
-      if (chatPartnerId === 'public') {
-        url = `/api/messages/public`;
-        setChatPartner(null);
-      } else {
-        url = `/api/messages/${currentUser.id}/${chatPartnerId}`;
-        const selectedUser = users.find(u => u.id === chatPartnerId);
-        setChatPartner(selectedUser);
+      try {
+        const response = await fetch('http://localhost:8080/api/messages/public');
+        const data = await response.json();
+        setMessages(data);
+      } catch (error) {
+        console.error('Błąd pobierania wiadomości:', error);
       }
-
-      const response = await fetch(url);
-      const data = await response.json();
-      setMessages(data);
     };
 
     fetchMessages();
-  }, [chatPartnerId, users, currentUser]);
+  }, []);
 
+  // Pobierz użytkowników
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/api/users');
+        const data = await response.json();
+        setUsers(data);
+      } catch (error) {
+        console.error('Błąd pobierania użytkowników:', error);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  // Przewiń do ostatniej wiadomości
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Wyślij wiadomość
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
 
-    const payload =
-      chatPartnerId === 'public'
-        ? {
-            senderId: currentUser.id,
-            content: newMessage,
-            public: true,
-          }
-        : {
-            senderId: currentUser.id,
-            receiverId: chatPartnerId,
-            content: newMessage,
-          };
+    if (!currentUser?.id) {
+      console.warn('Brak danych użytkownika — nie można wysłać wiadomości');
+      return;
+    }
 
-    const response = await fetch('/api/messages/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    const payload = {
+      senderId: currentUser.id,
+      receiverId: isPrivate ? receiverId : null,
+      content: newMessage,
+      public: !isPrivate,
+    };
 
-    if (response.ok) {
-      const sentMessage = await response.json();
-      setMessages(prev => [...prev, sentMessage]);
-      setNewMessage('');
+    try {
+      const response = await fetch('http://localhost:8080/api/messages/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        const sentMessage = await response.json();
+        setMessages(prev => [...prev, sentMessage]);
+        setNewMessage('');
+      } else {
+        console.error('Błąd wysyłania wiadomości:', await response.text());
+      }
+    } catch (error) {
+      console.error('Błąd połączenia z serwerem:', error);
     }
   };
 
-  const handlePartnerChange = (e) => {
-    setChatPartnerId(e.target.value);
+  // Stylizacja
+  const styles = {
+    container: {
+      maxWidth: '800px',
+      margin: '2rem auto',
+      padding: '1rem',
+      border: '1px solid #ccc',
+      borderRadius: '8px',
+      fontFamily: 'Arial, sans-serif',
+      display: 'flex',
+      flexDirection: 'column',
+      height: '80vh',
+    },
+    messages: {
+      flexGrow: 1,
+      overflowY: 'auto',
+      background: '#f9f9f9',
+      padding: '0.5rem',
+      borderRadius: '4px',
+      border: '1px solid #ddd',
+      marginBottom: '1rem',
+    },
+    message: {
+      marginBottom: '0.5rem',
+      padding: '0.3rem 0.5rem',
+      borderRadius: '4px',
+      backgroundColor: '#fff',
+      wordBreak: 'break-word',
+    },
+    inputArea: {
+      display: 'flex',
+      gap: '0.5rem',
+      flexWrap: 'wrap',
+    },
+    input: {
+      flex: 1,
+      padding: '0.5rem',
+      borderRadius: '4px',
+      border: '1px solid #ccc',
+    },
+    button: {
+      padding: '0.5rem 1rem',
+      borderRadius: '4px',
+      border: 'none',
+      backgroundColor: '#007bff',
+      color: '#fff',
+      cursor: 'pointer',
+    },
+    loginNotice: {
+      textAlign: 'center',
+      padding: '2rem',
+      fontStyle: 'italic',
+      color: '#555',
+    },
+    checkbox: {
+      marginLeft: '0.5rem',
+    },
   };
 
+  if (!currentUser?.id) {
+    return <div style={styles.loginNotice}>🔒 Zaloguj się, aby korzystać z czatu</div>;
+  }
+
   return (
-    <div className="chat-window">
-      <h2>Wiadomości</h2>
+    <div style={styles.container}>
+      <h2>💬 Czat</h2>
 
-      <div className="user-select">
-        <label>Wybierz czat:</label>
-        <select value={chatPartnerId} onChange={handlePartnerChange}>
-          <option value="public">🌐 Czat publiczny</option>
-          {users.map(user => (
-            <option key={user.id} value={user.id}>
-              {user.username}
-            </option>
-          ))}
-        </select>
+      <div style={styles.messages}>
+        {messages.length === 0 ? (
+          <p style={{ fontStyle: 'italic', color: '#888' }}>Brak wiadomości</p>
+        ) : (
+          messages.map((msg) => (
+            <div key={msg.id} style={styles.message}>
+              <strong>{msg.senderName || 'Użytkownik'}:</strong> {msg.content}
+            </div>
+          ))
+        )}
+        <div ref={messagesEndRef} />
       </div>
 
-      <h3>
-        {chatPartnerId === 'public'
-          ? 'Czat publiczny'
-          : `Czat z: ${chatPartner?.username || ''}`}
-      </h3>
-
-      <div className="messages">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`message ${msg.senderId === currentUser.id ? 'sent' : 'received'}`}
-          >
-            <p><strong>{msg.senderName || 'Użytkownik'}:</strong> {msg.content}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="input-area">
+      <div style={styles.inputArea}>
         <input
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder="Napisz wiadomość..."
+          style={styles.input}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSendMessage();
+          }}
         />
-        <button onClick={handleSendMessage}>Wyślij</button>
+
+        <label style={{ display: 'flex', alignItems: 'center' }}>
+          <input
+            type="checkbox"
+            checked={isPrivate}
+            onChange={(e) => setIsPrivate(e.target.checked)}
+            style={styles.checkbox}
+          />
+          Prywatna
+        </label>
+
+        {isPrivate && (
+          <select
+            value={receiverId}
+            onChange={(e) => setReceiverId(e.target.value)}
+            style={styles.input}
+          >
+            <option value="">-- Wybierz odbiorcę --</option>
+            {users
+              .filter((u) => u.id !== currentUser.id)
+              .map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.name || `Użytkownik ${user.Username}`}
+                </option>
+              ))}
+          </select>
+        )}
+
+        <button onClick={handleSendMessage} style={styles.button}>
+          Wyślij
+        </button>
       </div>
     </div>
   );

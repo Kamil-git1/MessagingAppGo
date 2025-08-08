@@ -2,13 +2,12 @@ package database
 
 import (
 	"log"
+	"messagingapp/models"
 	"os"
 
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-
-	"messagingapp/models"
 )
 
 var DB *gorm.DB
@@ -26,11 +25,12 @@ func Init() {
 		log.Fatal("❌ Nie udało się połączyć z bazą:", err)
 	}
 
-	err = db.AutoMigrate(&models.User{})
+	DB = db // ✅ najpierw przypisujemy
+
+	err = DB.AutoMigrate(&models.User{}, &models.Message{})
 	if err != nil {
-		log.Fatal("❌ Migracja nie powiodła się:", err)
+		log.Fatal("❌ Błąd migracji:", err)
 	}
 
 	log.Println("✅ Połączono z bazą danych.")
-	DB = db
 }

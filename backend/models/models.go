@@ -4,6 +4,8 @@ import (
 	"errors"
 	"log"
 
+	"time"
+
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -14,7 +16,26 @@ type User struct {
 	Email        string `gorm:"uniqueIndex;not null"`
 	PasswordHash string `gorm:"not null"`
 }
+type Message struct {
+	ID         uint      `json:"id" gorm:"primaryKey"`
+	SenderID   uint      `json:"senderId"`
+	Sender     User      `json:"sender" gorm:"foreignKey:SenderID"` // 👈 dodaj to!
+	ReceiverID *uint     `json:"receiverId"`
+	Content    string    `json:"content"`
+	Public     bool      `json:"public"`
+	CreatedAt  time.Time `json:"createdAt"`
+}
 
+func CreateMessage(db *gorm.DB, senderID uint, receiverID *uint, content string, public bool) (*Message, error) {
+	message := Message{
+		Content:    content,
+		SenderID:   senderID,
+		ReceiverID: receiverID,
+		Public:     public,
+	}
+	err := db.Create(&message).Error
+	return &message, err
+}
 func CreateUser(db *gorm.DB, username, email, passwordHash string) error {
 	user := User{
 		Username:     username,
@@ -47,4 +68,8 @@ func Authenticate(db *gorm.DB, identifier, password string) (*User, bool) {
 	}
 
 	return &user, true
+}
+func (u *User) CheckPassword(password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password))
+	return err == nil
 }

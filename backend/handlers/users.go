@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"messagingapp/database"
 	"messagingapp/models"
 	"net/http"
@@ -21,6 +20,17 @@ type LoginRequest struct {
 	Password   string `json:"password"`
 }
 
+func GetUsers(w http.ResponseWriter, r *http.Request) {
+	var users []models.User
+
+	if err := database.DB.Find(&users).Error; err != nil {
+		http.Error(w, "Błąd pobierania użytkowników", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(users)
+}
 func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -64,23 +74,32 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 func LoginUser(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Nieprawidłowe dane wejściowe", http.StatusBadRequest)
+		http.Error(w, "Nieprawidłowe dane logowania", http.StatusBadRequest)
 		return
 	}
 
-	if req.Identifier == "" || req.Password == "" {
-		http.Error(w, "Nazwa użytkownika i hasło są wymagane", http.StatusBadRequest)
+	var user models.User
+
+	// Szukamy użytkownika po nazwie lub emailu
+	err := database.DB.Where("username = ? OR email = ?", req.Identifier, req.Identifier).First(&user).Error
+	if err != nil {
+		http.Error(w, "Użytkownik nie istnieje", http.StatusUnauthorized)
 		return
 	}
 
-	user, ok := models.Authenticate(database.DB, req.Identifier, req.Password)
-	if !ok {
-		http.Error(w, "Nieprawidłowa nazwa użytkownika lub hasło", http.StatusUnauthorized)
+	// Sprawdzenie hasła
+	if !user.CheckPassword(req.Password) {
+		http.Error(w, "Nieprawidłowe hasło", http.StatusUnauthorized)
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]string{
-		"message": "Logowanie zakończone sukcesem",
-		"userId":  fmt.Sprint(user.ID),
-	})
+	// Zwracamy dane użytkownika (bez hasła)
+	response := map[string]interface{}{
+		"id":       user.ID,
+		"username": user.Username,
+		"email":    user.Email,
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }

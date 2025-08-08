@@ -1,13 +1,16 @@
-import React from 'react';
-import ChatWindow from './components/ChatWindow';
-import RegistrationForm from './components/RegistrationForm';
+import React, { useState } from 'react';
 import Navbar from './components/Navbar';
+import ChatWindow from './components/ChatWindow';
 
-const App = () => (
-  <div>
-    <Navbar/>
-    <ChatWindow />
-  </div>
-);
+function App() {
+  const [currentUser, setCurrentUser] = useState(null); // 🧠 stan użytkownika
+
+  return (
+    <>
+      <Navbar onLogin={setCurrentUser} />
+      <ChatWindow currentUser={currentUser} />
+    </>
+  );
+}
 
 export default App;
