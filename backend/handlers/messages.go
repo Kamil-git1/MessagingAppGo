@@ -112,3 +112,21 @@ func GetPrivateMessages(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(jsonMessages)
 }
+
+// 🗑️ Kasowanie wszystkich wiadomości
+func DeleteAllMessages(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Metoda niedozwolona", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if err := database.DB.Exec("DELETE FROM messages").Error; err != nil {
+		http.Error(w, "Błąd usuwania wiadomości", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "wszystkie wiadomości zostały usunięte",
+	})
+}

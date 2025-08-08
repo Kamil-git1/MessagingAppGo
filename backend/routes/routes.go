@@ -19,6 +19,8 @@ func SetupRoutes() http.Handler {
 
 	// Wysyłanie wiadomości — POST /api/messages/send
 	mux.HandleFunc("/api/messages/send", handlers.SendMessage)
+	//kasuje wszystkie wiadomości — DELETE /api/messages/deleteAll
+	mux.HandleFunc("/api/messages/deleteAll", handlers.DeleteAllMessages)
 
 	// Pobieranie wiadomości publicznych — GET /api/messages/public
 	mux.HandleFunc("/api/messages/public", handlers.GetPublicMessages)

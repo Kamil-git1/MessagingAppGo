@@ -78,6 +78,27 @@ const ChatWindow = ({ currentUser }) => {
     }
   };
 
+  // 🗑️ Kasowanie wszystkich wiadomości
+  const handleDeleteAllMessages = async () => {
+    if (!window.confirm('Czy na pewno chcesz usunąć wszystkie wiadomości?')) return;
+
+    try {
+      const response = await fetch('http://localhost:8080/api/messages/deleteAll', {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(result.status);
+        setMessages([]); // wyczyść lokalnie
+      } else {
+        console.error('Błąd usuwania wiadomości:', await response.text());
+      }
+    } catch (error) {
+      console.error('Błąd połączenia z serwerem:', error);
+    }
+  };
+
   // Stylizacja
   const styles = {
     container: {
@@ -126,6 +147,16 @@ const ChatWindow = ({ currentUser }) => {
       color: '#fff',
       cursor: 'pointer',
     },
+    deleteButton: {
+      padding: '0.5rem 1rem',
+      borderRadius: '4px',
+      border: 'none',
+      backgroundColor: '#dc3545',
+      color: '#fff',
+      cursor: 'pointer',
+      marginBottom: '1rem',
+      alignSelf: 'flex-end',
+    },
     loginNotice: {
       textAlign: 'center',
       padding: '2rem',
@@ -144,6 +175,10 @@ const ChatWindow = ({ currentUser }) => {
   return (
     <div style={styles.container}>
       <h2>💬 Czat</h2>
+
+      <button onClick={handleDeleteAllMessages} style={styles.deleteButton}>
+        🗑️ Kasuj wszystkie wiadomości
+      </button>
 
       <div style={styles.messages}>
         {messages.length === 0 ? (
