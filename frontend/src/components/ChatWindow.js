@@ -8,7 +8,6 @@ const ChatWindow = ({ currentUser }) => {
   const [users, setUsers] = useState([]);
   const messagesEndRef = useRef(null);
 
-  // Pobierz wiadomości publiczne
   useEffect(() => {
     const fetchMessages = async () => {
       try {
@@ -19,11 +18,9 @@ const ChatWindow = ({ currentUser }) => {
         console.error('Błąd pobierania wiadomości:', error);
       }
     };
-
     fetchMessages();
   }, []);
 
-  // Pobierz użytkowników
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -34,23 +31,16 @@ const ChatWindow = ({ currentUser }) => {
         console.error('Błąd pobierania użytkowników:', error);
       }
     };
-
     fetchUsers();
   }, []);
 
-  // Przewiń do ostatniej wiadomości
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Wyślij wiadomość
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
-
-    if (!currentUser?.id) {
-      console.warn('Brak danych użytkownika — nie można wysłać wiadomości');
-      return;
-    }
+    if (!currentUser?.id) return;
 
     const payload = {
       senderId: currentUser.id,
@@ -70,15 +60,12 @@ const ChatWindow = ({ currentUser }) => {
         const sentMessage = await response.json();
         setMessages(prev => [...prev, sentMessage]);
         setNewMessage('');
-      } else {
-        console.error('Błąd wysyłania wiadomości:', await response.text());
       }
     } catch (error) {
       console.error('Błąd połączenia z serwerem:', error);
     }
   };
 
-  // 🗑️ Kasowanie wszystkich wiadomości
   const handleDeleteAllMessages = async () => {
     if (!window.confirm('Czy na pewno chcesz usunąć wszystkie wiadomości?')) return;
 
@@ -90,81 +77,95 @@ const ChatWindow = ({ currentUser }) => {
       if (response.ok) {
         const result = await response.json();
         console.log(result.status);
-        setMessages([]); // wyczyść lokalnie
-      } else {
-        console.error('Błąd usuwania wiadomości:', await response.text());
+        setMessages([]);
       }
     } catch (error) {
       console.error('Błąd połączenia z serwerem:', error);
     }
   };
 
-  // Stylizacja
   const styles = {
-    container: {
-      maxWidth: '800px',
-      margin: '2rem auto',
-      padding: '1rem',
-      border: '1px solid #ccc',
-      borderRadius: '8px',
-      fontFamily: 'Arial, sans-serif',
-      display: 'flex',
-      flexDirection: 'column',
-      height: '80vh',
-    },
+ container: {
+  position: 'absolute', // lub 'fixed' jeśli navbar jest sticky
+  top: '60px', // wysokość Navbar
+  left: 0,
+  right: 0,
+  bottom: 0,
+  padding: '1rem 2rem',
+  backgroundColor: '#1e1e2f',
+  borderRadius: '0',
+  boxShadow: 'none',
+  color: '#f0f0f0',
+  fontFamily: 'Segoe UI, sans-serif',
+  display: 'flex',
+  flexDirection: 'column',
+  zIndex: 1, // niższy niż navbar
+},
     messages: {
       flexGrow: 1,
       overflowY: 'auto',
-      background: '#f9f9f9',
-      padding: '0.5rem',
-      borderRadius: '4px',
-      border: '1px solid #ddd',
+      background: '#2a2a3d',
+      padding: '1rem',
+      borderRadius: '8px',
       marginBottom: '1rem',
+      scrollBehavior: 'smooth',
     },
     message: {
-      marginBottom: '0.5rem',
-      padding: '0.3rem 0.5rem',
-      borderRadius: '4px',
-      backgroundColor: '#fff',
-      wordBreak: 'break-word',
+      marginBottom: '0.75rem',
+      padding: '0.6rem 1rem',
+      borderRadius: '8px',
+      backgroundColor: '#3a3a4f',
+      color: '#e0e0e0',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
     },
     inputArea: {
       display: 'flex',
       gap: '0.5rem',
       flexWrap: 'wrap',
+      alignItems: 'center',
     },
     input: {
       flex: 1,
-      padding: '0.5rem',
-      borderRadius: '4px',
-      border: '1px solid #ccc',
+      padding: '0.6rem 1rem',
+      borderRadius: '8px',
+      border: 'none',
+      backgroundColor: '#2f2f44',
+      color: '#fff',
+      fontSize: '1rem',
     },
     button: {
-      padding: '0.5rem 1rem',
-      borderRadius: '4px',
+      padding: '0.6rem 1.2rem',
+      borderRadius: '8px',
       border: 'none',
-      backgroundColor: '#007bff',
+      backgroundColor: '#4e8cff',
       color: '#fff',
+      fontWeight: 'bold',
       cursor: 'pointer',
+      transition: 'background 0.3s',
+    },
+    buttonHover: {
+      backgroundColor: '#3a6edc',
     },
     deleteButton: {
       padding: '0.5rem 1rem',
-      borderRadius: '4px',
+      borderRadius: '8px',
       border: 'none',
-      backgroundColor: '#dc3545',
+      backgroundColor: '#ff4d4d',
       color: '#fff',
       cursor: 'pointer',
       marginBottom: '1rem',
       alignSelf: 'flex-end',
+      fontWeight: 'bold',
     },
     loginNotice: {
       textAlign: 'center',
       padding: '2rem',
       fontStyle: 'italic',
-      color: '#555',
+      color: '#aaa',
     },
     checkbox: {
       marginLeft: '0.5rem',
+      accentColor: '#4e8cff',
     },
   };
 
@@ -174,7 +175,7 @@ const ChatWindow = ({ currentUser }) => {
 
   return (
     <div style={styles.container}>
-      <h2>💬 Czat</h2>
+      <h2 style={{ marginBottom: '1rem' }}>💬 Czat</h2>
 
       <button onClick={handleDeleteAllMessages} style={styles.deleteButton}>
         🗑️ Kasuj wszystkie wiadomości
@@ -186,7 +187,7 @@ const ChatWindow = ({ currentUser }) => {
         ) : (
           messages.map((msg) => (
             <div key={msg.id} style={styles.message}>
-              <strong>{msg.senderName || 'Użytkownik'}:</strong> {msg.content}
+              <strong style={{ color: '#4e8cff' }}>{msg.senderName || 'Użytkownik'}:</strong> {msg.content}
             </div>
           ))
         )}
@@ -208,7 +209,7 @@ const ChatWindow = ({ currentUser }) => {
           style={styles.input}
         />
 
-        <label style={{ display: 'flex', alignItems: 'center' }}>
+        <label style={{ display: 'flex', alignItems: 'center', color: '#ccc' }}>
           <input
             type="checkbox"
             checked={isPrivate}
@@ -236,7 +237,7 @@ const ChatWindow = ({ currentUser }) => {
         )}
 
         <button type="submit" style={styles.button}>
-          Wyślij
+          ➤ Wyślij
         </button>
       </form>
     </div>

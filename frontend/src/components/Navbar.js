@@ -106,14 +106,21 @@ const Navbar = ({ onLogin }) => {
   };
 
   const styles = {
-    navbar: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      backgroundColor: '#2c3e50',
-      padding: '10px 20px',
-      color: 'white',
-    },
+navbar: {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  right: 0,
+  height: '60px',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  backgroundColor: '#1e1e2f',
+  padding: '0 20px',
+  color: 'white',
+  zIndex: 1000,
+  boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+},
     userInfo: {
       marginLeft: '1rem',
       fontStyle: 'italic',
@@ -133,7 +140,7 @@ const Navbar = ({ onLogin }) => {
     dropdownContent: {
       position: 'absolute',
       right: 0,
-      backgroundColor: '#f1f1f1',
+      backgroundColor: '#1e1e2f',
       minWidth: '160px',
       boxShadow: '0px 8px 16px rgba(0,0,0,0.2)',
       zIndex: 1,
@@ -142,16 +149,20 @@ const Navbar = ({ onLogin }) => {
       width: '100%',
       padding: '10px',
       border: 'none',
+      color: '#ffff',
       background: 'none',
       textAlign: 'left',
       cursor: 'pointer',
     },
-    formContainer: {
-      padding: '20px',
-      backgroundColor: '#ecf0f1',
-      margin: '20px',
-      borderRadius: '8px',
-    },
+formContainer: {
+  padding: '20px',
+  backgroundColor: '#ecf0f1',
+  margin: '80px auto 20px auto', // odstęp od navbar
+  borderRadius: '8px',
+  maxWidth: '400px',
+  zIndex: 1001,
+  position: 'relative',
+},
     formInput: {
       display: 'block',
       margin: '10px 0',
