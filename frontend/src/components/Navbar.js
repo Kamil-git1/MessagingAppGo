@@ -1,17 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-// Komponent Navbar przyjmuje funkcję onLogin jako props — służy do przekazania zalogowanego użytkownika do App.js
 const Navbar = ({ onLogin }) => {
-  // Stan rozwijanego menu
   const [dropdownOpen, setDropdownOpen] = useState(false);
-
-  // Stan aktywnego formularza ('register' lub 'login')
   const [activeForm, setActiveForm] = useState(null);
-
-  // Lokalny stan zalogowanego użytkownika (do wyświetlenia w pasku)
   const [loggedInUser, setLoggedInUser] = useState(null);
-
-  // Dane z formularza rejestracji/logowania
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -19,12 +11,20 @@ const Navbar = ({ onLogin }) => {
     repeatPassword: '',
   });
 
-  // Przełączanie widoczności rozwijanego menu
+  // 🔁 Przy starcie aplikacji — sprawdź czy użytkownik jest zapisany
+  useEffect(() => {
+    const savedUser = localStorage.getItem('loggedInUser');
+    if (savedUser) {
+      const parsedUser = JSON.parse(savedUser);
+      setLoggedInUser(parsedUser);
+      onLogin(parsedUser);
+    }
+  }, [onLogin]);
+
   const toggleDropdown = () => {
     setDropdownOpen(prev => !prev);
   };
 
-  // Pokazuje wybrany formularz i resetuje dane wejściowe
   const showForm = (formType) => {
     setActiveForm(formType);
     setDropdownOpen(false);
@@ -36,13 +36,11 @@ const Navbar = ({ onLogin }) => {
     });
   };
 
-  // Obsługa zmian w polach formularza
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Obsługa rejestracji użytkownika
   const handleRegister = async () => {
     if (formData.password !== formData.repeatPassword) {
       alert('Hasła nie są zgodne!');
@@ -73,7 +71,6 @@ const Navbar = ({ onLogin }) => {
     }
   };
 
-  // Obsługa logowania użytkownika
   const handleLogin = async () => {
     try {
       const response = await fetch('http://localhost:8080/api/login', {
@@ -88,8 +85,9 @@ const Navbar = ({ onLogin }) => {
       const result = await response.json();
       if (response.ok) {
         alert(`Zalogowano jako: ${result.username}`);
-        setLoggedInUser(result);   // zapis lokalny
-        onLogin(result);           // przekazanie użytkownika do App.js
+        setLoggedInUser(result);
+        onLogin(result);
+        localStorage.setItem('loggedInUser', JSON.stringify(result)); // 💾 zapisz użytkownika
         setActiveForm(null);
       } else {
         alert(`Błąd logowania: ${result.error || 'Nieznany błąd'}`);
@@ -100,14 +98,13 @@ const Navbar = ({ onLogin }) => {
     }
   };
 
-  // Obsługa wylogowania
   const handleLogout = () => {
-    setLoggedInUser(null); // czyścimy lokalny stan
-    onLogin(null);         // czyścimy w App.js
+    setLoggedInUser(null);
+    onLogin(null);
+    localStorage.removeItem('loggedInUser'); // 🧹 usuń z localStorage
     alert('Wylogowano');
   };
 
-  // Stylizacja komponentu
   const styles = {
     navbar: {
       display: 'flex',
@@ -116,11 +113,6 @@ const Navbar = ({ onLogin }) => {
       backgroundColor: '#2c3e50',
       padding: '10px 20px',
       color: 'white',
-    },
-    searchInput: {
-      padding: '5px',
-      borderRadius: '4px',
-      border: 'none',
     },
     userInfo: {
       marginLeft: '1rem',
@@ -177,12 +169,10 @@ const Navbar = ({ onLogin }) => {
     },
   };
 
-  // Render komponentu
   return (
     <div>
       <div style={styles.navbar}>
         <div>
-          {/* <input type="text" placeholder="Szukaj..." style={styles.searchInput} /> */}
           {loggedInUser && (
             <span style={styles.userInfo}>Zalogowano jako: {loggedInUser.username}</span>
           )}
@@ -202,9 +192,14 @@ const Navbar = ({ onLogin }) => {
         </div>
       </div>
 
-      {/* Formularz rejestracji */}
       {activeForm === 'register' && (
-        <div style={styles.formContainer}>
+        <form
+          style={styles.formContainer}
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleRegister();
+          }}
+        >
           <h3>Formularz rejestracji</h3>
           <input
             type="text"
@@ -238,13 +233,18 @@ const Navbar = ({ onLogin }) => {
             onChange={handleChange}
             style={styles.formInput}
           />
-          <button style={styles.formButton} onClick={handleRegister}>Zarejestruj się</button>
-        </div>
+          <button type="submit" style={styles.formButton}>Zarejestruj się</button>
+        </form>
       )}
 
-      {/* Formularz logowania */}
       {activeForm === 'login' && (
-        <div style={styles.formContainer}>
+        <form
+          style={styles.formContainer}
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleLogin();
+          }}
+        >
           <h3>Formularz logowania</h3>
           <input
             type="text"
@@ -262,8 +262,8 @@ const Navbar = ({ onLogin }) => {
             onChange={handleChange}
             style={styles.formInput}
           />
-          <button style={styles.formButton} onClick={handleLogin}>Zaloguj się</button>
-        </div>
+          <button type="submit" style={styles.formButton}>Zaloguj się</button>
+        </form>
       )}
     </div>
   );

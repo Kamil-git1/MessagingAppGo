@@ -193,16 +193,19 @@ const ChatWindow = ({ currentUser }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      <div style={styles.inputArea}>
+      <form
+        style={styles.inputArea}
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSendMessage();
+        }}
+      >
         <input
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder="Napisz wiadomość..."
           style={styles.input}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSendMessage();
-          }}
         />
 
         <label style={{ display: 'flex', alignItems: 'center' }}>
@@ -232,10 +235,10 @@ const ChatWindow = ({ currentUser }) => {
           </select>
         )}
 
-        <button onClick={handleSendMessage} style={styles.button}>
+        <button type="submit" style={styles.button}>
           Wyślij
         </button>
-      </div>
+      </form>
     </div>
   );
 };

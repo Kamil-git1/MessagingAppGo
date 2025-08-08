@@ -4,9 +4,10 @@ import ChatWindow from './components/ChatWindow';
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null); // 🧠 stan użytkownika
-
+  
   return (
     <>
+    
       <Navbar onLogin={setCurrentUser} />
       <ChatWindow currentUser={currentUser} />
     </>
