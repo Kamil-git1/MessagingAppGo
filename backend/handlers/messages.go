@@ -2,9 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"messagingapp/database"
 	"messagingapp/models"
 	"net/http"
+	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 // Struktura żądania wysłania wiadomości
@@ -28,13 +32,19 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Walidacja wiadomości prywatnej
+	if !req.Public && (req.ReceiverID == nil || *req.ReceiverID == 0) {
+		http.Error(w, "Brak odbiorcy dla wiadomości prywatnej", http.StatusBadRequest)
+		return
+	}
+
+	// Przekazujemy wskaźnik bezpośrednio
 	msg, err := models.CreateMessage(database.DB, req.SenderID, req.ReceiverID, req.Content, req.Public)
 	if err != nil {
 		http.Error(w, "Błąd zapisu wiadomości", http.StatusInternalServerError)
 		return
 	}
 
-	// Pobierz nazwę nadawcy
 	var sender models.User
 	senderName := "Użytkownik"
 	if err := database.DB.First(&sender, msg.SenderID).Error; err == nil {
@@ -50,6 +60,7 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 		"senderName": senderName,
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
 }
@@ -82,19 +93,47 @@ func GetPublicMessages(w http.ResponseWriter, r *http.Request) {
 }
 
 // Pobieranie wiadomości prywatnych między dwoma użytkownikami
+
+func respondWithError(w http.ResponseWriter, code int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+
 func GetPrivateMessages(w http.ResponseWriter, r *http.Request) {
-	senderID := r.PathValue("senderId")
-	receiverID := r.PathValue("receiverId")
+	vars := mux.Vars(r)
+	senderIDStr := vars["senderId"]
+	receiverIDStr := vars["receiverId"]
+
+	log.Println("senderIDStr:", senderIDStr)
+	log.Println("receiverIDStr:", receiverIDStr)
+
+	if senderIDStr == "" || receiverIDStr == "" {
+		respondWithError(w, http.StatusBadRequest, "Brak senderId lub receiverId w URL")
+		return
+	}
+
+	senderID, err := strconv.ParseUint(senderIDStr, 10, 64)
+	if err != nil || senderID == 0 {
+		respondWithError(w, http.StatusBadRequest, "Nieprawidłowy senderId")
+		return
+	}
+
+	receiverID, err := strconv.ParseUint(receiverIDStr, 10, 64)
+	if err != nil || receiverID == 0 {
+		respondWithError(w, http.StatusBadRequest, "Nieprawidłowy receiverId")
+		return
+	}
 
 	var messages []models.Message
-	err := database.DB.Preload("Sender").
+	err = database.DB.Preload("Sender").
 		Where("(sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)",
-			senderID, receiverID, receiverID, senderID).
+			uint(senderID), uint(receiverID), uint(receiverID), uint(senderID)).
 		Order("created_at asc").
 		Find(&messages).Error
 
 	if err != nil {
-		http.Error(w, "Błąd pobierania wiadomości", http.StatusInternalServerError)
+		respondWithError(w, http.StatusInternalServerError, "Błąd pobierania wiadomości")
 		return
 	}
 
@@ -110,6 +149,7 @@ func GetPrivateMessages(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(jsonMessages)
 }
 

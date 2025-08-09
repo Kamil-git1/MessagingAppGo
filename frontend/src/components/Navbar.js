@@ -102,6 +102,8 @@ const Navbar = ({ onLogin }) => {
     setLoggedInUser(null);
     onLogin(null);
     localStorage.removeItem('loggedInUser'); // 🧹 usuń z localStorage
+
+
     alert('Wylogowano');
   };
 

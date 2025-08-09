@@ -63,6 +63,7 @@ messaging-app
 ### Database
 1. Set up the database using the schema defined in `schema.sql`.
 2. Follow the instructions in the `database/README.md` for configuration.
+3. psql -h localhost -p 5432 -U nazwa_uzytkownika -d messagingapp
 
 ## Contributing
 Contributions are welcome! Please submit a pull request or open an issue for any enhancements or bug fixes.
