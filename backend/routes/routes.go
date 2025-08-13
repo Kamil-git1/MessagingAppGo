@@ -5,11 +5,13 @@ import (
 	"messagingapp/handlers" // Importujemy pakiet z funkcjami obsługującymi żądania HTTP
 	"net/http"
 	"strings" // Standardowa biblioteka HTTP w Go
+
+	"github.com/gorilla/mux"
 )
 
 // SetupRoutes konfiguruje wszystkie dostępne ścieżki API i zwraca handler HTTP
 func SetupRoutes() http.Handler {
-	mux := http.NewServeMux() // Tworzymy nowy multiplexer (router) do obsługi ścieżek
+	mux := mux.NewRouter() // Tworzymy nowy multiplexer (router) do obsługi ścieżek
 
 	// Rejestracja nowego użytkownika — POST /api/register
 	mux.HandleFunc("/api/register", handlers.RegisterUser)
@@ -21,7 +23,7 @@ func SetupRoutes() http.Handler {
 	mux.HandleFunc("/api/messages/send", handlers.SendMessage)
 	//kasuje wszystkie wiadomości — DELETE /api/messages/deleteAll
 	mux.HandleFunc("/api/messages/deleteAll", handlers.DeleteAllMessages)
-	mux.HandleFunc("/api/messages/{senderId}/{receiverId}", handlers.GetPrivateMessages)
+	mux.HandleFunc("/api/messages/{senderId}/{receiverId}", handlers.GetPrivateMessages).Methods("GET")
 	// Pobieranie wiadomości publicznych — GET /api/messages/public
 	mux.HandleFunc("/api/messages/public", handlers.GetPublicMessages)
 	mux.HandleFunc("/api/users", handlers.GetUsers) // Obsługa z dodatkowym ukośnikiem
